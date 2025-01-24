@@ -5,6 +5,7 @@ from webbrowser import get
 import pygame
 import time
 import keyboard
+import math
 
 def getWheelAngle(input_device):
     axis_value = input_device.get_axis(0)
@@ -48,13 +49,45 @@ def getBrakingStatusForArrow(braking_time):
 
 def computeRollAngle(wheel_angle):
     if wheel_angle<0: #turning left
-        roll_angle=-wheel_angle/15
+        if wheel_angle>-300:
+            roll_angle=-wheel_angle/10
+        else:
+            roll_angle=30
     elif wheel_angle>0: #turning right
-        roll_angle=-wheel_angle/15
+        if wheel_angle<300:
+            roll_angle=-wheel_angle/10
+        else:
+            roll_angle=-30
     else:
         roll_angle=0
     return roll_angle
 
+def displayPitchDiagram(screen, pitch_angle):
+    side_length=30
+    pitch_pivot = (425, 210)
+    color=(255, 0, 0)
+    thickness=2
+    pitch_angle_rad=math.radians(pitch_angle)
+    sx, sy = pitch_pivot
+    x_end = sx + side_length * math.cos(pitch_angle_rad)
+    y_end = sy - side_length * math.sin(pitch_angle_rad)
+    pygame.draw.line(screen, color, (sx, sy), (x_end, y_end), thickness)
+
+def diplayRollDiagram(screen, roll_angle):
+    width=120
+    roll_pivot = (200, 200)
+    color = (0, 255, 0)
+    thickness=2
+    roll_angle_rad=math.radians(-roll_angle)
+    cx, cy = roll_pivot
+    dx = (width/2) * math.cos(roll_angle_rad)
+    dy = (width/2) * math.sin(roll_angle_rad)
+    x1 = cx - dx
+    y1 = cy + dy
+    x2 = cx + dx
+    y2 = cy - dy
+    pygame.draw.line(screen, color, (x1, y1), (x2, y2), thickness)
+    
 def main():
 
     pygame.init()
@@ -81,16 +114,26 @@ def main():
                 braking_time=getBrakingStatusForArrow(braking_time)
                 if braking_time>=10:
                     pitch_angle=60
+                    braking_status=True
                 else:
                     pitch_angle=10
+                    braking_status=False
 
                 screen.fill((0, 0, 0))
+                
                 wheel_text = font.render(f"Wheel angle: {wheel_angle}°", True, (255, 255, 255))
+                roll_text = font.render(f"Roll angle: {round(roll_angle, 2)}°", True, (255, 255, 255))
+                braking_text = font.render(f"Braking: {braking_status}", True, (255, 255, 255))
                 pitch_text = font.render(f"Pitch angle: {pitch_angle}°", True, (255, 255, 255))
-                roll_text = font.render(f"Wing roll angle: {roll_angle}°", True, (255, 255, 255))
-                screen.blit(wheel_text, (50, 50))
-                screen.blit(pitch_text, (50, 100))
-                screen.blit(roll_text, (50, 150))
+                
+                screen.blit(wheel_text, (100, 50))
+                screen.blit(roll_text, (100, 100))
+                screen.blit(braking_text, (350, 50))
+                screen.blit(pitch_text, (350, 100))
+
+                displayPitchDiagram(screen, pitch_angle)
+                diplayRollDiagram(screen, roll_angle)
+
                 pygame.display.flip()
                 clock.tick(30)
                 # print(f'Wheel angle: {wheel_angle}°   Pitch angle: {pitch_angle}°')
@@ -120,18 +163,27 @@ def main():
                 braking_time=getBrakingStatus(input_device, braking_time)
                 if braking_time>=10:
                     pitch_angle=60
+                    braking_status=True
                 else:
                     pitch_angle=10
-
-                computeRollAngle()
+                    braking_status=False
 
                 screen.fill((0, 0, 0))
+
                 wheel_text = font.render(f"Wheel angle: {wheel_angle}°", True, (255, 255, 255))
+                roll_text = font.render(f"Roll angle: {round(roll_angle, 2)}°", True, (255, 255, 255))
+                braking_text = font.render(f"Braking: {braking_status}", True, (255, 255, 255))
                 pitch_text = font.render(f"Pitch angle: {pitch_angle}°", True, (255, 255, 255))
-                roll_text = font.render(f"Wing roll angle: {roll_angle}°", True, (255, 255, 255))
-                screen.blit(wheel_text, (50, 50))
-                screen.blit(pitch_text, (50, 100))
-                screen.blit(roll_text, (50, 150))
+                
+                screen.blit(wheel_text, (100, 50))
+                screen.blit(roll_text, (100, 100))
+                screen.blit(braking_text, (350, 50))
+                screen.blit(pitch_text, (350, 100))
+                
+
+                displayPitchDiagram(screen, pitch_angle)
+                diplayRollDiagram(screen, roll_angle)
+
                 pygame.display.flip()
                 clock.tick(30)
                 # print(f'Wheel angle: {wheel_angle}°   Pitch angle: {pitch_angle}°')
