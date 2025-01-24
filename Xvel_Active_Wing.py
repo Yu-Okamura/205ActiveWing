@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# C:\Users\its0y\source\repos\Xvel_Active_Wing\Xvel_Active_Wing\Xvel_Active_Wing.pyproj
+# cd C:\Users\its0y\source\repos\Xvel_Active_Wing\Xvel_Active_Wing
 
 from webbrowser import get
 import pygame
@@ -34,7 +34,6 @@ def getWheelAngleForArrow(wheel_angle):
 def getBrakingStatus(input_device, braking_time):
     axis_value = input_device.get_axis(2)
     if axis_value < 0.9:
-        # print(f'Braking')
         braking_time+=1
     else:
         braking_time=0
@@ -98,6 +97,7 @@ def main():
     clock = pygame.time.Clock()
 
     braking_time=0
+    pitch_angle=0
 
     if pygame.joystick.get_count() == 0:
         print('\nNo wheel detectred. Exiting program. \nUse \"down-arrow\" for braking input and \"side-arrow\" for steering input.')
@@ -112,8 +112,12 @@ def main():
                 wheel_angle=getWheelAngleForArrow(wheel_angle)
                 roll_angle=computeRollAngle(wheel_angle)
                 braking_time=getBrakingStatusForArrow(braking_time)
-                if braking_time>=10:
-                    pitch_angle=60
+
+                if braking_time>=15:
+                    if pitch_angle>=60:
+                        pitch_angle=60
+                    else:
+                        pitch_angle+=10
                     braking_status=True
                 else:
                     pitch_angle=10
@@ -149,6 +153,7 @@ def main():
         input_device = pygame.joystick.Joystick(0)
         input_device.init()
         print(f'{input_device.get_name()} detecterd.')
+        initial_axis_value = input_device.get_axis(2)
 
         try:
             while True:
@@ -161,8 +166,12 @@ def main():
                 wheel_angle=getWheelAngle(input_device)
                 roll_angle=computeRollAngle(wheel_angle)
                 braking_time=getBrakingStatus(input_device, braking_time)
-                if braking_time>=10:
-                    pitch_angle=60
+
+                if braking_time>=15:
+                    if pitch_angle>=60:
+                        pitch_angle=60
+                    else:
+                        pitch_angle+=10
                     braking_status=True
                 else:
                     pitch_angle=10
