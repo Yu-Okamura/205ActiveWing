@@ -6,6 +6,9 @@ import pygame
 import time
 import keyboard
 import math
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import numpy as np
 
 def getWheelAngle(input_device):
     axis_value = input_device.get_axis(0)
@@ -48,13 +51,13 @@ def getBrakingStatusForArrow(braking_time):
 
 def computeRollAngle(wheel_angle):
     if wheel_angle<0: #turning left
-        if wheel_angle>-300:
-            roll_angle=-wheel_angle/10
+        if wheel_angle>-150:
+            roll_angle=-wheel_angle/5
         else:
             roll_angle=30
     elif wheel_angle>0: #turning right
-        if wheel_angle<300:
-            roll_angle=-wheel_angle/10
+        if wheel_angle<150:
+            roll_angle=-wheel_angle/5
         else:
             roll_angle=-30
     else:
@@ -86,15 +89,108 @@ def diplayRollDiagram(screen, roll_angle):
     x2 = cx + dx
     y2 = cy - dy
     pygame.draw.line(screen, color, (x1, y1), (x2, y2), thickness)
+
+def displayMiddleMount(ax):
+    # display middle mount
+    line_middle_mount = np.array([[0, 0, -15], [0, 0, 0]])
+    x, y, z = line_middle_mount[:, 0], line_middle_mount[:, 1], line_middle_mount[:, 2]
+    ax.plot(x, y, z, color='blue', linewidth=2, label='Wing Mount')
+    return 0
+
+def displayWing(ax, roll_angle, pitch_angle):
+    roll_angle_rad = np.radians(roll_angle)
+    pitch_angle_rad = np.radians(pitch_angle)
+
+    fl_y = -40 * np.cos(-roll_angle_rad)  
+    fl_z = -40 * np.sin(-roll_angle_rad) 
+    frontLeft = np.array([0, fl_y, fl_z])
+
+    fr_y =  40 * np.cos(-roll_angle_rad) 
+    fr_z =  40 * np.sin(-roll_angle_rad) 
+    frontRight = np.array([0, fr_y, fr_z])
+
+    cos_p = np.cos(pitch_angle_rad)
+    sin_p = np.sin(pitch_angle_rad)
+    depth_vec = np.array([
+        10 * cos_p,  # x
+        0,           # y
+        10 * sin_p   # z
+    ])
+
+    rearLeft  = frontLeft  + depth_vec
+    rearRight = frontRight + depth_vec
+    rectangle_points = np.array([frontLeft, frontRight, rearRight, rearLeft])
+
+    rect_poly = Poly3DCollection(
+        [rectangle_points],
+        facecolors='blue',
+        alpha=0.5,  
+        edgecolor='blue',
+        label=f'Wing (roll={roll_angle}°, pitch={pitch_angle}°)'
+    )
+    ax.add_collection3d(rect_poly)
+
+    rear_vec = rearRight - rearLeft
+    rear_length = np.linalg.norm(rear_vec)
+
+    rear_dir = rear_vec / rear_length
+
+    paramA = 25.0 / rear_length
+    paramB = 1.0 - 25.0 / rear_length
+
+    dotLeft  = rearLeft + paramA * rear_vec 
+    dotRight = rearLeft + paramB * rear_vec
+
+    ax.scatter([dotLeft[0]],  [dotLeft[1]],  [dotLeft[2]],
+               color='red', s=15, marker='o')
+    ax.scatter([dotRight[0]], [dotRight[1]], [dotRight[2]],
+               color='red', s=15, marker='o')
+
+    endLeft  = np.array([5, -15, -25])
+    endRight = np.array([5,  15, -25])
+
+    ax.plot([dotLeft[0], endLeft[0]],
+            [dotLeft[1], endLeft[1]],
+            [dotLeft[2], endLeft[2]],
+            color='red', linewidth=2)
+
+    ax.plot([dotRight[0], endRight[0]],
+            [dotRight[1], endRight[1]],
+            [dotRight[2], endRight[2]],
+            color='red', linewidth=2)
+
+    lengthLeft  = np.linalg.norm(endLeft  - dotLeft)
+    lengthRight = np.linalg.norm(endRight - dotRight)
     
+    midLeft  = (dotLeft  + endLeft ) / 2.0
+    midRight = (dotRight + endRight) / 2.0
+    
+    ax.text(
+        midLeft[0], midLeft[1], midLeft[2],
+        f"{lengthLeft:.2f}",
+        color='red'
+    )
+    ax.text(
+        midRight[0], midRight[1], midRight[2],
+        f"{lengthRight:.2f}",
+        color='red'
+    )
+
+    return 0
+        
+     
 def main():
 
     pygame.init()
 
     screen = pygame.display.set_mode((640, 480))
-    pygame.display.set_caption("Wheel & Pitch Angle Display")
+    pygame.display.set_caption("Roll and Pitch Angle Display")
     font = pygame.font.Font(None, 36)
     clock = pygame.time.Clock()
+
+    plt.ion()
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
     braking_time=0
     pitch_angle=0
@@ -167,14 +263,17 @@ def main():
                 roll_angle=computeRollAngle(wheel_angle)
                 braking_time=getBrakingStatus(input_device, braking_time)
 
-                if braking_time>=15:
+                if braking_time>=5:
                     if pitch_angle>=60:
                         pitch_angle=60
                     else:
-                        pitch_angle+=10
+                        pitch_angle+=15
                     braking_status=True
                 else:
-                    pitch_angle=10
+                    if pitch_angle>=30:
+                        pitch_angle-=15
+                    else:
+                        pitch_angle=15
                     braking_status=False
 
                 screen.fill((0, 0, 0))
@@ -194,9 +293,27 @@ def main():
                 diplayRollDiagram(screen, roll_angle)
 
                 pygame.display.flip()
-                clock.tick(30)
-                # print(f'Wheel angle: {wheel_angle}°   Pitch angle: {pitch_angle}°')
-                # time.sleep(0.3)
+
+
+                ax.clear()
+
+                ax.set_xlabel('X')
+                ax.set_ylabel('Y')
+                ax.set_zlabel('Z')
+                ax.set_xlim(-50, 50)
+                ax.set_ylim(-50, 50)
+                ax.set_zlim(-50, 50)
+
+                displayMiddleMount(ax)
+                displayWing(ax, roll_angle, pitch_angle)
+
+
+                ax.legend()
+                plt.draw()
+
+                # clock.tick(30)
+                plt.pause(0.05)
+
 
         except KeyboardInterrupt:
             print("\nExiting program.\n")
