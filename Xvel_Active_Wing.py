@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cd C:\Users\its0y\source\repos\Xvel_Active_Wing\Xvel_Active_Wing
 
 from webbrowser import get
 import pygame
@@ -52,12 +51,14 @@ def getBrakingStatusForArrow(braking_time):
 def computeRollAngle(wheel_angle):
     if wheel_angle<0: #turning left
         if wheel_angle>-150:
-            roll_angle=-wheel_angle/5
+            wheel_angle=np.pi*wheel_angle/180
+            roll_angle= 180 * ((np.pi / 12) * np.sin((6/5)*wheel_angle - (np.pi / 2)) + (np.pi/12)) / np.pi
         else:
             roll_angle=30
     elif wheel_angle>0: #turning right
         if wheel_angle<150:
-            roll_angle=-wheel_angle/5
+            wheel_angle=np.pi*wheel_angle/180
+            roll_angle= - 180 * ((np.pi / 12) * np.sin((6/5)*wheel_angle - (np.pi / 2)) + (np.pi/12)) / np.pi
         else:
             roll_angle=-30
     else:
@@ -126,7 +127,7 @@ def displayWing(ax, roll_angle, pitch_angle):
         facecolors='blue',
         alpha=0.5,  
         edgecolor='blue',
-        label=f'Wing (roll={roll_angle}°, pitch={pitch_angle}°)'
+        label=f'Wing (roll={round(roll_angle, 2)}°, pitch={pitch_angle}°)'
     )
     ax.add_collection3d(rect_poly)
 
@@ -181,12 +182,14 @@ def displayWing(ax, roll_angle, pitch_angle):
      
 def main():
 
+    
     pygame.init()
-
+    
     screen = pygame.display.set_mode((640, 480))
     pygame.display.set_caption("Roll and Pitch Angle Display")
     font = pygame.font.Font(None, 36)
     clock = pygame.time.Clock()
+    
 
     plt.ion()
     fig = plt.figure()
@@ -276,6 +279,7 @@ def main():
                         pitch_angle=15
                     braking_status=False
 
+               
                 screen.fill((0, 0, 0))
 
                 wheel_text = font.render(f"Wheel angle: {wheel_angle}°", True, (255, 255, 255))
@@ -293,7 +297,7 @@ def main():
                 diplayRollDiagram(screen, roll_angle)
 
                 pygame.display.flip()
-
+                
 
                 ax.clear()
 
